@@ -1,0 +1,29 @@
+{
+	"schemaVersion": 1,
+	"id": "sourcemovement",
+	"version": "${version}",
+	"name": "Source Movement",
+	"description": "Replaces the local player's walking, jumping and air movement with CS:GO style Source engine movement.",
+	"authors": [
+		"grvig"
+	],
+	"license": "MIT",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.grvig.sourcemovement.client.SourceMovementClient"
+		]
+	},
+	"mixins": [
+		{
+			"config": "sourcemovement.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.3",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
