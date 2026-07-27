@@ -91,9 +91,50 @@ public final class SourceMovement {
 	}
 
 	/**
-	 * WalkMove and AirMove: moves the player and stops it on the axes that hit something.
+	 * WalkMove and AirMove: builds the wish velocity from the keys and yaw, accelerates towards it, then moves.
 	 */
 	private static void accelerateAndMove(MoveState s, MoveInput in, MoveConfig cfg, Collider collider, double dt, boolean walking) {
+		double maxSpeed = maxSpeed(in, cfg);
+		double forwardMove = in.forward * KEY_SPEED;
+		double sideMove = in.side * KEY_SPEED;
+		double inputSpeed = Math.sqrt(forwardMove * forwardMove + sideMove * sideMove);
+		if (inputSpeed > maxSpeed) {
+			forwardMove *= maxSpeed / inputSpeed;
+			sideMove *= maxSpeed / inputSpeed;
+		}
+		forwardMove *= in.inputScale;
+		sideMove *= in.inputScale;
+		if (walking && in.ducked) {
+			forwardMove *= in.duckMultiplier;
+			sideMove *= in.duckMultiplier;
+		}
+
+		double yaw = Math.toRadians(in.yaw);
+		double forwardX = -Math.sin(yaw);
+		double forwardZ = Math.cos(yaw);
+		double wishX = forwardX * forwardMove - forwardZ * sideMove;
+		double wishZ = forwardZ * forwardMove + forwardX * sideMove;
+		double wishSpeed = Math.sqrt(wishX * wishX + wishZ * wishZ);
+		if (wishSpeed > 0) {
+			wishX /= wishSpeed;
+			wishZ /= wishSpeed;
+		}
+		wishSpeed = Math.min(wishSpeed, maxSpeed);
+
+		if (walking) {
+			s.velY = 0;
+			accelerate(s, wishX, wishZ, wishSpeed, wishSpeed, cfg.accelerate, dt);
+			s.velY = 0;
+			if (s.horizontalSpeed() < 1) {
+				s.velX = 0;
+				s.velZ = 0;
+				return;
+			}
+		} else {
+			double airWishSpeed = Math.min(wishSpeed, cfg.airMaxWishSpeed);
+			accelerate(s, wishX, wishZ, wishSpeed, airWishSpeed, cfg.airAccelerate, dt);
+		}
+
 		int blocked = collider.move(s.velX * dt, s.velY * dt, s.velZ * dt);
 		if ((blocked & Collider.BLOCKED_X) != 0) {
 			s.velX = 0;
@@ -104,6 +145,21 @@ public final class SourceMovement {
 		if ((blocked & Collider.BLOCKED_Z) != 0) {
 			s.velZ = 0;
 		}
+	}
+
+	/**
+	 * Accelerate and AirAccelerate. The speed added along the wish direction is capped by addCap,
+	 * while the acceleration itself scales with the uncapped wish speed.
+	 */
+	private static void accelerate(MoveState s, double wishX, double wishZ, double wishSpeed, double addCap, double accel, double dt) {
+		double currentSpeed = s.velX * wishX + s.velZ * wishZ;
+		double addSpeed = addCap - currentSpeed;
+		if (addSpeed <= 0) {
+			return;
+		}
+		double accelSpeed = Math.min(accel * dt * wishSpeed * s.surfaceFriction, addSpeed);
+		s.velX += accelSpeed * wishX;
+		s.velZ += accelSpeed * wishZ;
 	}
 
 	/**
