@@ -18,7 +18,7 @@ public final class SourceMovement {
 		double gravity = cfg.gravity * in.gravityScale;
 		s.velY -= gravity * 0.5 * dt;
 
-		if (in.jump) {
+		if (in.jump || in.scrollJump) {
 			checkJump(s, in, cfg, gravity, dt);
 		}
 		s.oldJump = in.jump;
@@ -49,7 +49,7 @@ public final class SourceMovement {
 		if (!s.onGround) {
 			return;
 		}
-		if (s.oldJump && !cfg.autohop) {
+		if (s.oldJump && !cfg.autohop && !in.scrollJump) {
 			return;
 		}
 		if (cfg.bhopCap()) {

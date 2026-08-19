@@ -10,7 +10,10 @@ public class MoveInput {
 	public double side;
 	/** View yaw in degrees using Minecraft's convention: 0 faces +Z, 90 faces -X. */
 	public double yaw;
+	/** The jump key was down at some point during this tick. */
 	public boolean jump;
+	/** A scroll wheel jump landed in this tick. Always counts as a fresh press. */
+	public boolean scrollJump;
 	public boolean ducked;
 
 	public double speedScale = 1;

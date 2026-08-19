@@ -195,6 +195,18 @@ class SourceMovementTest {
 	}
 
 	@Test
+	void aScrollJumpIsFreshEvenWhileTheKeyIsHeld() {
+		input.jump = true;
+		step();
+		while (!state.onGround) {
+			step();
+		}
+		input.scrollJump = true;
+		step();
+		assertTrue(!state.onGround);
+	}
+
+	@Test
 	void aFreshPressAfterReleasingJumps() {
 		input.jump = true;
 		step();
