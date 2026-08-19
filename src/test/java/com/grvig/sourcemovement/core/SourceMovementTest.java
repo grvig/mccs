@@ -131,4 +131,80 @@ class SourceMovementTest {
 		assertEquals(Math.sqrt(250 * 250 + 64 * 30 * 30), state.horizontalSpeed(), 1e-6);
 	}
 
+	/** Drops the player from a little height at 300 u/s until the ground check lands it. */
+	void fallOntoGroundAt300() {
+		state.onGround = false;
+		ground.y = 10;
+		state.velZ = 300;
+		while (!state.onGround) {
+			step();
+		}
+	}
+
+	@Test
+	void bhopOnTheLandingTickKeepsAllSpeedWithTheCapOff() {
+		cfg.bhopCapEnabled = false;
+		fallOntoGroundAt300();
+		input.jump = true;
+		step();
+		assertEquals(300, state.horizontalSpeed(), EPS);
+		assertTrue(state.velY > SourceMovement.NON_JUMP_VELOCITY);
+	}
+
+	@Test
+	void stayingOnTheGroundOneTickLosesSpeedToFriction() {
+		cfg.bhopCapEnabled = false;
+		fallOntoGroundAt300();
+		step();
+		assertEquals(300 * (1 - cfg.friction * DT), state.horizontalSpeed(), EPS);
+	}
+
+	@Test
+	void bhopCapTrimsTheJumpTo275() {
+		cfg.preset = "csgo";
+		fallOntoGroundAt300();
+		input.jump = true;
+		step();
+		// PreventBunnyJumping scales the whole velocity, which still holds half a tick of gravity.
+		double halfGravity = cfg.gravity * 0.5 * DT;
+		double expected = 300 * 275 / Math.sqrt(300 * 300 + halfGravity * halfGravity);
+		assertEquals(expected, state.horizontalSpeed(), EPS);
+	}
+
+	@Test
+	void holdingJumpThroughALandingDoesNotJumpAgain() {
+		input.jump = true;
+		step();
+		while (!state.onGround) {
+			step();
+		}
+		step();
+		assertTrue(state.onGround);
+	}
+
+	@Test
+	void autohopJumpsOnTheFirstGroundedTickWhileHeld() {
+		cfg.autohop = true;
+		input.jump = true;
+		step();
+		while (!state.onGround) {
+			step();
+		}
+		step();
+		assertTrue(!state.onGround);
+	}
+
+	@Test
+	void aFreshPressAfterReleasingJumps() {
+		input.jump = true;
+		step();
+		while (!state.onGround) {
+			step();
+		}
+		input.jump = false;
+		step();
+		input.jump = true;
+		step();
+		assertTrue(!state.onGround);
+	}
 }
