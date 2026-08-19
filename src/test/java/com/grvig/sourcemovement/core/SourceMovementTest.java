@@ -54,4 +54,81 @@ class SourceMovementTest {
 		} while (!state.onGround);
 		assertEquals(57.0, apex, 0.01);
 	}
+
+	/** One tick of Friction followed by Accelerate along the velocity, done by hand. */
+	double handGroundTick(double speed, double wishSpeed) {
+		if (speed >= 0.1) {
+			double control = Math.max(speed, cfg.stopSpeed);
+			speed = Math.max(speed - control * cfg.friction * DT, 0);
+		}
+		double add = wishSpeed - speed;
+		if (add > 0) {
+			speed += Math.min(cfg.accelerate * DT * wishSpeed, add);
+		}
+		if (speed < 1) {
+			speed = 0;
+		}
+		return speed;
+	}
+
+	@Test
+	void groundAccelerationReachesRunSpeedOnSchedule() {
+		input.forward = 1;
+		double hand = 0;
+		int ticks = 0;
+		while (state.horizontalSpeed() < cfg.runSpeed - EPS) {
+			step();
+			hand = handGroundTick(hand, cfg.runSpeed);
+			ticks++;
+			assertEquals(hand, state.horizontalSpeed(), EPS);
+		}
+		assertEquals(35, ticks);
+		for (int i = 0; i < 10; i++) {
+			step();
+		}
+		assertEquals(cfg.runSpeed, state.horizontalSpeed(), EPS);
+	}
+
+	@Test
+	void frictionStopsFromRunSpeedThroughTheStopSpeedRegime() {
+		state.velZ = 250;
+		double hand = 250;
+		int ticks = 0;
+		while (state.horizontalSpeed() > 0) {
+			step();
+			hand = handGroundTick(hand, 0);
+			ticks++;
+			assertEquals(hand, state.horizontalSpeed(), EPS);
+		}
+		// Above 80 u/s speed falls by 8.125% a tick, below it by a flat 6.5 u/s.
+		assertEquals(26, ticks);
+	}
+
+	@Test
+	void duckingOnTheGroundCapsSpeedAt85() {
+		input.forward = 1;
+		input.ducked = true;
+		for (int i = 0; i < 200; i++) {
+			step();
+		}
+		assertEquals(cfg.runSpeed * cfg.duckSpeedMultiplier, state.horizontalSpeed(), 1e-6);
+	}
+
+	@Test
+	void airStrafeGainsTheCappedWishSpeedEachTick() {
+		state.onGround = false;
+		ground.y = 100000;
+		state.velZ = 250;
+		input.side = 1;
+		for (int i = 0; i < 64; i++) {
+			// Face along the velocity so the strafe key's wish direction is perpendicular to it.
+			input.yaw = Math.toDegrees(Math.atan2(-state.velX, state.velZ));
+			double before = state.horizontalSpeed();
+			step();
+			double expected = Math.sqrt(before * before + cfg.airMaxWishSpeed * cfg.airMaxWishSpeed);
+			assertEquals(expected, state.horizontalSpeed(), 1e-6);
+		}
+		assertEquals(Math.sqrt(250 * 250 + 64 * 30 * 30), state.horizontalSpeed(), 1e-6);
+	}
+
 }
