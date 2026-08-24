@@ -6,7 +6,9 @@ import com.grvig.sourcemovement.core.MoveInput;
 import com.grvig.sourcemovement.core.MoveState;
 import com.grvig.sourcemovement.core.SourceMovement;
 import com.grvig.sourcemovement.core.SubstepClock;
+import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.level.block.PowderSnowBlock;
@@ -83,6 +85,30 @@ public final class SourceController {
 		);
 	}
 
+	/** Records a movement or jump key changing state, with the time it happened. */
+	public static void onKey(KeyMapping key, boolean down) {
+		Options options = Minecraft.getInstance().options;
+		if (options == null) {
+			return;
+		}
+		int index = -1;
+		if (key == options.keyUp) {
+			index = InputTimeline.FORWARD;
+		} else if (key == options.keyDown) {
+			index = InputTimeline.BACK;
+		} else if (key == options.keyLeft) {
+			index = InputTimeline.LEFT;
+		} else if (key == options.keyRight) {
+			index = InputTimeline.RIGHT;
+		} else if (key == options.keyJump) {
+			index = InputTimeline.JUMP;
+		}
+		if (index >= 0) {
+			TIMELINE.addKey(System.nanoTime(), index, down);
+		}
+	}
+
+	/**
 	/** Runs at the end of every client tick. Keeps the timeline drained while vanilla is in charge. */
 	public static void endTick() {
 		if (!simulatedThisTick) {
