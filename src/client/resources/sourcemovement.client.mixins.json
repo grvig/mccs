@@ -3,6 +3,8 @@
 	"package": "com.grvig.sourcemovement.client.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
+		"LivingEntityMixin",
+		"PlayerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
