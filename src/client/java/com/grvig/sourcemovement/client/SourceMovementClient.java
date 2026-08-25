@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -16,6 +17,7 @@ public class SourceMovementClient implements ClientModInitializer {
 	private static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("sourcemovement", "main"));
 
 	private KeyMapping toggleKey;
+	private KeyMapping speedometerKey;
 
 	@Override
 	public void onInitializeClient() {
@@ -24,10 +26,18 @@ public class SourceMovementClient implements ClientModInitializer {
 			new KeyMapping("key.sourcemovement.toggle", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_BRACKET, CATEGORY)
 		);
 
+		speedometerKey = KeyBindingHelper.registerKeyBinding(
+			new KeyMapping("key.sourcemovement.speedometer", InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_BRACKET, CATEGORY)
+		);
+		HudElementRegistry.addLast(Identifier.fromNamespaceAndPath("sourcemovement", "speedometer"), Speedometer::render);
+
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			SourceController.endTick();
 			while (toggleKey.consumeClick()) {
 				toggle(client);
+			}
+			while (speedometerKey.consumeClick()) {
+				Speedometer.visible = !Speedometer.visible;
 			}
 		});
 
