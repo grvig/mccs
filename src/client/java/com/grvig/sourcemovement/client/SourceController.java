@@ -13,6 +13,7 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -100,7 +101,14 @@ public final class SourceController {
 		for (long end : clock.advance(now)) {
 			TIMELINE.fill(INPUT, end);
 			INPUT.gravityScale = gravityScale(player);
+			boolean wasOnGround = STATE.onGround;
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
+			if (!wasOnGround && STATE.onGround) {
+				// A bunnyhop can land and take off inside one tick, which the once per tick position
+				// packet would never show. Report the landing so the server applies fall damage and
+				// sees the next jump.
+				player.connection.send(new ServerboundMovePlayerPacket.Pos(player.position(), true, player.horizontalCollision));
+			}
 			// Soul sand and honey: vanilla's once per tick speed factor, spread over the Source ticks.
 			double blockFactor = Math.pow(entity.sourcemovement$getBlockSpeedFactor(), SubstepClock.SOURCE_TICK / SubstepClock.GAME_TICK);
 			STATE.velX *= blockFactor;
