@@ -16,6 +16,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.MoverType;
+import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.PowderSnowBlock;
@@ -43,6 +45,7 @@ public final class SourceController {
 	private static SubstepClock clock = new SubstepClock();
 	private static boolean simulatedLastTick;
 	private static boolean simulatedThisTick;
+	private static boolean crouchedLastTick;
 
 	private SourceController() {
 	}
@@ -77,6 +80,7 @@ public final class SourceController {
 			STATE.surfaceFriction = 1;
 		}
 		simulatedThisTick = true;
+		tuckFeet(player);
 
 		Vec3 velocity = player.getDeltaMovement();
 		STATE.velX = config.toUnitsPerSecond(velocity.x);
@@ -120,6 +124,28 @@ public final class SourceController {
 			config.toBlocksPerTick(STATE.velY),
 			config.toBlocksPerTick(STATE.velZ)
 		);
+	}
+
+	/**
+	 * Ducking in the air pulls the feet up by duckJumpLift like CS:GO, which is what makes a crouch
+	 * jump reach higher. Standing up in the air lowers them again. Minecraft has already shrunk or
+	 * grown the hull from the top by the time this runs.
+	 */
+	private static void tuckFeet(LocalPlayer player) {
+		boolean crouched = player.getPose() == Pose.CROUCHING;
+		boolean changed = crouched != crouchedLastTick;
+		crouchedLastTick = crouched;
+		if (!changed || !simulatedLastTick || player.onGround()) {
+			return;
+		}
+		double lift = config.duckJumpLift / config.unitsPerBlock;
+		if (!crouched) {
+			player.move(MoverType.SELF, new Vec3(0, -lift, 0));
+			return;
+		}
+		if (player.level().noCollision(player, player.getBoundingBox().move(0, lift, 0))) {
+			player.move(MoverType.SELF, new Vec3(0, lift, 0));
+		}
 	}
 
 	/** Sets the parts of the user command that come from effects, attributes and items. */
