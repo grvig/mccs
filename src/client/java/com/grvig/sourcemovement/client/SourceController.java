@@ -109,6 +109,28 @@ public final class SourceController {
 	}
 
 	/**
+	 * Handles a vertical hotbar scroll. Returns true when the scroll was taken as a jump, in which
+	 * case the hotbar must not move.
+	 */
+	public static boolean onScroll(int notches) {
+		if (!enabled || notches == 0) {
+			return false;
+		}
+		String mode = config.scrollJump;
+		boolean up = notches > 0;
+		boolean jumps = mode.equals("both");
+		if (up && mode.equals("up")) {
+			jumps = true;
+		}
+		if (!up && mode.equals("down")) {
+			jumps = true;
+		}
+		if (jumps) {
+			TIMELINE.addScroll(System.nanoTime());
+		}
+		return jumps;
+	}
+
 	/** Runs at the end of every client tick. Keeps the timeline drained while vanilla is in charge. */
 	public static void endTick() {
 		if (!simulatedThisTick) {
