@@ -1,5 +1,8 @@
 package com.grvig.sourcemovement.client;
 
+import com.grvig.sourcemovement.client.mixin.EntityAccessor;
+import com.grvig.sourcemovement.client.mixin.LivingEntityAccessor;
+import com.grvig.sourcemovement.client.mixin.LocalPlayerAccessor;
 import com.grvig.sourcemovement.core.InputTimeline;
 import com.grvig.sourcemovement.core.MoveConfig;
 import com.grvig.sourcemovement.core.MoveInput;
@@ -10,7 +13,10 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.PowderSnowBlock;
 import net.minecraft.world.phys.Vec3;
 
@@ -21,6 +27,11 @@ import net.minecraft.world.phys.Vec3;
  */
 public final class SourceController {
 	private static final long GAME_TICK_NANOS = 50_000_000L;
+	private static final Identifier SPRINTING_MODIFIER_ID = Identifier.withDefaultNamespace("sprinting");
+	private static final double BASE_MOVEMENT_SPEED = 0.1;
+	private static final double BASE_SNEAKING_SPEED = 0.3;
+	private static final double BASE_JUMP_POWER = 0.42;
+	private static final double BASE_GRAVITY = 0.08;
 
 	public static MoveConfig config = new MoveConfig();
 	public static boolean enabled = true;
@@ -72,10 +83,28 @@ public final class SourceController {
 		STATE.velZ = config.toUnitsPerSecond(velocity.z);
 		STATE.onGround = player.onGround() && STATE.velY <= SourceMovement.NON_JUMP_VELOCITY;
 
-		MinecraftCollider collider = new MinecraftCollider(player, config.unitsPerBlock, new Vec3(1, 1, 1));
+		readWorld(player);
+		EntityAccessor entity = (EntityAccessor) player;
+		Vec3 scale = new Vec3(1, 1, 1);
+		Vec3 stuck = entity.sourcemovement$getStuckSpeedMultiplier();
+		if (stuck.lengthSqr() > 1.0E-7) {
+			// Cobwebs, berry bushes and powder snow: vanilla scales the move and drops all velocity.
+			scale = stuck;
+			entity.sourcemovement$setStuckSpeedMultiplier(Vec3.ZERO);
+			STATE.velX = 0;
+			STATE.velY = 0;
+			STATE.velZ = 0;
+		}
+
+		MinecraftCollider collider = new MinecraftCollider(player, config.unitsPerBlock, scale);
 		for (long end : clock.advance(now)) {
 			TIMELINE.fill(INPUT, end);
+			INPUT.gravityScale = gravityScale(player);
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
+			// Soul sand and honey: vanilla's once per tick speed factor, spread over the Source ticks.
+			double blockFactor = Math.pow(entity.sourcemovement$getBlockSpeedFactor(), SubstepClock.SOURCE_TICK / SubstepClock.GAME_TICK);
+			STATE.velX *= blockFactor;
+			STATE.velZ *= blockFactor;
 		}
 
 		player.setDeltaMovement(
@@ -83,6 +112,35 @@ public final class SourceController {
 			config.toBlocksPerTick(STATE.velY),
 			config.toBlocksPerTick(STATE.velZ)
 		);
+	}
+
+	/** Sets the parts of the user command that come from effects, attributes and items. */
+	private static void readWorld(LocalPlayer player) {
+		// Sprinting adds 30% to the speed attribute, but in Source the sprint key does not change speed.
+		AttributeInstance speed = player.getAttribute(Attributes.MOVEMENT_SPEED);
+		double speedValue = speed.getValue();
+		if (speed.hasModifier(SPRINTING_MODIFIER_ID)) {
+			speedValue /= 1.3;
+		}
+		INPUT.speedScale = speedValue / BASE_MOVEMENT_SPEED;
+
+		INPUT.inputScale = 1;
+		if (player.isUsingItem()) {
+			INPUT.inputScale = ((LocalPlayerAccessor) player).sourcemovement$itemUseSpeedMultiplier();
+		}
+		INPUT.ducked = player.isMovingSlowly();
+		INPUT.duckMultiplier = config.duckSpeedMultiplier * player.getAttributeValue(Attributes.SNEAKING_SPEED) / BASE_SNEAKING_SPEED;
+		INPUT.jumpScale = ((LivingEntityAccessor) player).sourcemovement$getJumpPower() / BASE_JUMP_POWER;
+		INPUT.stepHeight = player.maxUpStep() * config.unitsPerBlock;
+	}
+
+	/** Gravity attribute and Slow Falling relative to vanilla's 0.08, checked like vanilla against the fall direction. */
+	private static double gravityScale(LocalPlayer player) {
+		double gravity = player.getGravity();
+		if (STATE.velY <= 0 && player.hasEffect(MobEffects.SLOW_FALLING)) {
+			gravity = Math.min(gravity, 0.01);
+		}
+		return gravity / BASE_GRAVITY;
 	}
 
 	/** Records a movement or jump key changing state, with the time it happened. */
