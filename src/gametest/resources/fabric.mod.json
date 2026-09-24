@@ -1,0 +1,15 @@
+{
+	"schemaVersion": 1,
+	"id": "sourcemovement-gametest",
+	"version": "1.0.0",
+	"name": "Source Movement game tests",
+	"environment": "client",
+	"entrypoints": {
+		"fabric-client-gametest": [
+			"com.grvig.sourcemovement.gametest.SourceMovementGameTest"
+		]
+	},
+	"depends": {
+		"sourcemovement": "*"
+	}
+}
