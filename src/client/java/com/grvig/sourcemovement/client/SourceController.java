@@ -102,16 +102,17 @@ public final class SourceController {
 		}
 
 		MinecraftCollider collider = new MinecraftCollider(player, config.unitsPerBlock, scale);
-		for (long end : clock.advance(now)) {
-			TIMELINE.fill(INPUT, end);
+		long[] ends = clock.advance(now);
+		for (int i = 0; i < ends.length; i++) {
+			TIMELINE.fill(INPUT, ends[i]);
 			INPUT.gravityScale = gravityScale(player);
-			boolean wasOnGround = STATE.onGround;
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
-			if (!wasOnGround && STATE.onGround) {
-				// A bunnyhop can land and take off inside one tick, which the once per tick position
-				// packet would never show. Report the landing so the server applies fall damage and
-				// sees the next jump.
-				player.connection.send(new ServerboundMovePlayerPacket.Pos(player.position(), true, player.horizontalCollision));
+			if (i < ends.length - 1) {
+				// The server replays each position packet as one straight move. Reporting every Source
+				// tick keeps those moves as short as ours, so corners never look like a wrong move, and
+				// it shows landings and takeoffs that happen inside one tick, for fall damage and jumps.
+				// The last one is sent by vanilla at the end of the tick.
+				player.connection.send(new ServerboundMovePlayerPacket.Pos(player.position(), player.onGround(), player.horizontalCollision));
 			}
 			// Soul sand and honey: vanilla's once per tick speed factor, spread over the Source ticks.
 			double blockFactor = Math.pow(entity.sourcemovement$getBlockSpeedFactor(), SubstepClock.SOURCE_TICK / SubstepClock.GAME_TICK);
