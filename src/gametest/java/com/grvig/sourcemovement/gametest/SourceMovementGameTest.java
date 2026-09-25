@@ -35,6 +35,10 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			runSpeed(context);
 			jumpHeight(context);
 			scrollJump(context);
+			airStrafe(context);
+			serverAgrees(context, server);
+			fallDamage(context, server);
+			waterFallsBackToVanilla(context, server);
 		}
 	}
 
@@ -105,4 +109,61 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		waitForGround(context);
 	}
 
+	private static void airStrafe(ClientGameTestContext context) {
+		waitForGround(context);
+		TestInput input = context.getInput();
+		SourceController.config.autohop = true;
+		input.holdKey(options -> options.keyUp);
+		context.waitTicks(30);
+		input.releaseKey(options -> options.keyUp);
+		input.holdKey(options -> options.keyJump);
+		input.holdKey(options -> options.keyRight);
+		double best = 0;
+		// Test frames come once a tick, so the view turns in steps rather than smoothly. 60 pixels
+		// at default sensitivity is 9 degrees a tick, slow enough to gain speed even in steps.
+		for (int i = 0; i < 100; i++) {
+			input.moveCursor(60, 0);
+			context.waitTick();
+			best = Math.max(best, speed(context));
+			if (i % 20 == 0) {
+				LOGGER.info("strafe tick {}: {} u/s", i, speed(context));
+			}
+		}
+		input.releaseKey(options -> options.keyRight);
+		input.releaseKey(options -> options.keyJump);
+		SourceController.config.autohop = false;
+		check(best > 300, "strafing while bunnyhopping builds speed past 300 u/s, got " + best);
+		waitForGround(context);
+	}
+
+	private static void serverAgrees(ClientGameTestContext context, TestServerContext server) {
+		context.waitTicks(10);
+		Vec3 client = position(context);
+		Vec3 onServer = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).position());
+		double gap = client.distanceTo(onServer);
+		check(gap < 0.01, "server and client positions agree after strafing, gap " + gap);
+	}
+
+	private static void fallDamage(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("execute as @a at @s run tp @s ~ ~10 ~");
+		context.waitTicks(5);
+		// Health is read every tick because full saturation heals it again within a few ticks.
+		float lowest = 20;
+		for (int i = 0; i < 60; i++) {
+			context.waitTick();
+			float health = server.computeOnServer(s -> s.getPlayerList().getPlayers().get(0).getHealth());
+			lowest = Math.min(lowest, health);
+		}
+		check(lowest == 13, "a 10 block fall does vanilla's 7 damage, lowest health " + lowest);
+		server.runCommand("effect give @a instant_health 1 5");
+	}
+
+	private static void waterFallsBackToVanilla(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("execute at @a run setblock ~ ~ ~ water");
+		context.waitTicks(10);
+		boolean simulating = context.computeOnClient(client -> SourceController.shouldSimulate(player(client)));
+		check(!simulating, "water hands movement back to vanilla");
+		server.runCommand("execute at @a run setblock ~ ~ ~ air");
+		context.waitTicks(10);
+	}
 }
