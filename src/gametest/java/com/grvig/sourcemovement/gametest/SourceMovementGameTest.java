@@ -145,9 +145,9 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 	}
 
 	private static void fallDamage(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("gamerule natural_health_regeneration false");
 		server.runCommand("execute as @a at @s run tp @s ~ ~10 ~");
 		context.waitTicks(5);
-		// Health is read every tick because full saturation heals it again within a few ticks.
 		float lowest = 20;
 		for (int i = 0; i < 60; i++) {
 			context.waitTick();
@@ -155,6 +155,7 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			lowest = Math.min(lowest, health);
 		}
 		check(lowest == 13, "a 10 block fall does vanilla's 7 damage, lowest health " + lowest);
+		server.runCommand("gamerule natural_health_regeneration true");
 		server.runCommand("effect give @a instant_health 1 5");
 	}
 
