@@ -25,6 +25,8 @@ public class MoveConfig {
 	public Boolean bhopCapEnabled;
 	public boolean autohop = false;
 	public String scrollJump = "both";
+	/** Off by default: servers do not expect Source speeds and may kick or rubber band the player. */
+	public boolean allowMultiplayer = false;
 
 	/**
 	 * Whether jumps are capped to bhopCapFactor times the max speed. An explicit
