@@ -50,9 +50,17 @@ public final class SourceController {
 	private SourceController() {
 	}
 
+	/** Whether the mod is switched on for this world: singleplayer, or any server when allowed. */
+	public static boolean activeHere() {
+		if (!enabled) {
+			return false;
+		}
+		return config.allowMultiplayer || Minecraft.getInstance().hasSingleplayerServer();
+	}
+
 	/** Whether Source movement drives the player right now, or vanilla does. */
 	public static boolean shouldSimulate(LocalPlayer player) {
-		if (!enabled || !player.isAlive() || player.isSpectator() || player.isSleeping() || player.isPassenger()) {
+		if (!activeHere() || !player.isAlive() || player.isSpectator() || player.isSleeping() || player.isPassenger()) {
 			return false;
 		}
 		if (player.getAbilities().flying || player.isFallFlying() || player.isAutoSpinAttack()) {
@@ -206,7 +214,7 @@ public final class SourceController {
 	 * case the hotbar must not move.
 	 */
 	public static boolean onScroll(int notches) {
-		if (!enabled || notches == 0) {
+		if (!activeHere() || notches == 0) {
 			return false;
 		}
 		String mode = config.scrollJump;
