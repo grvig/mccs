@@ -62,7 +62,11 @@ public class SourceMovementClient implements ClientModInitializer {
 			if (SourceController.enabled) {
 				state = "on";
 			}
-			client.player.displayClientMessage(Component.literal("Source movement " + state), true);
+			String message = "Source movement " + state;
+			if (SourceController.enabled && !SourceController.activeHere()) {
+				message = "Source movement stays off on servers unless allowMultiplayer is set";
+			}
+			client.player.displayClientMessage(Component.literal(message), true);
 		}
 	}
 }
