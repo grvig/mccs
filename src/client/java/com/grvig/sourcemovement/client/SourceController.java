@@ -21,6 +21,7 @@ import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.level.block.PowderSnowBlock;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 
 /**
@@ -109,10 +110,21 @@ public final class SourceController {
 			STATE.velZ = 0;
 		}
 
+		// Controllers (Controlify) steer through the player's input vector without touching the
+		// movement keys. With no key down, that vector is the stick, held for the whole tick.
+		Options options = Minecraft.getInstance().options;
+		boolean keysDown = options.keyUp.isDown() || options.keyDown.isDown() || options.keyLeft.isDown() || options.keyRight.isDown();
+		Vec2 stick = player.input.getMoveVector();
+		boolean useStick = !keysDown && stick.lengthSquared() > 0;
+
 		MinecraftCollider collider = new MinecraftCollider(player, config.unitsPerBlock, scale);
 		long[] ends = clock.advance(now);
 		for (int i = 0; i < ends.length; i++) {
 			TIMELINE.fill(INPUT, ends[i]);
+			if (useStick) {
+				INPUT.forward = stick.y;
+				INPUT.side = -stick.x;
+			}
 			INPUT.gravityScale = gravityScale(player);
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
 			if (i < ends.length - 1) {
