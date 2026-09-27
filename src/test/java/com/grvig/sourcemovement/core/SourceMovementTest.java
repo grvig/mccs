@@ -115,6 +115,16 @@ class SourceMovementTest {
 	}
 
 	@Test
+	void aPartlyTiltedStickRunsSlower() {
+		// 450 u/s per full key, so half a stick asks for 225, under the 250 cap.
+		input.forward = 0.5;
+		for (int i = 0; i < 200; i++) {
+			step();
+		}
+		assertEquals(225, state.horizontalSpeed(), 1e-6);
+	}
+
+	@Test
 	void airStrafeGainsTheCappedWishSpeedEachTick() {
 		state.onGround = false;
 		ground.y = 100000;
