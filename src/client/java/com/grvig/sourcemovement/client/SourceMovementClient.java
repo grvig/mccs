@@ -46,6 +46,9 @@ public class SourceMovementClient implements ClientModInitializer {
 				.then(ClientCommandManager.literal("reload").executes(context -> {
 					SourceController.config = ConfigFile.load();
 					context.getSource().sendFeedback(Component.literal("Reloaded " + ConfigFile.path().getFileName()));
+					for (String problem : ConfigFile.problems) {
+						context.getSource().sendError(Component.literal("Fixed: " + problem));
+					}
 					return 1;
 				}))
 				.then(ClientCommandManager.literal("toggle").executes(context -> {

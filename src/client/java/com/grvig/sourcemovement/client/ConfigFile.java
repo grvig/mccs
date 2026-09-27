@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import net.fabricmc.loader.api.FabricLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,19 +27,28 @@ public final class ConfigFile {
 		return FabricLoader.getInstance().getConfigDir().resolve("sourcemovement.json");
 	}
 
+	/** What the last load had to fix, one line each. Empty when the file was fine. */
+	public static List<String> problems = List.of();
+
 	public static MoveConfig load() {
 		Path path = path();
 		if (Files.exists(path)) {
 			try (Reader reader = Files.newBufferedReader(path)) {
 				MoveConfig config = GSON.fromJson(reader, MoveConfig.class);
 				if (config != null) {
+					problems = config.validate();
+					for (String problem : problems) {
+						LOGGER.warn("{}: {}", path.getFileName(), problem);
+					}
 					return config;
 				}
 			} catch (IOException | JsonParseException e) {
 				LOGGER.error("Could not read {}, using defaults", path, e);
+				problems = List.of("could not be read: " + e.getMessage());
 				return new MoveConfig();
 			}
 		}
+		problems = List.of();
 		MoveConfig config = new MoveConfig();
 		try {
 			Files.writeString(path, GSON.toJson(config));
