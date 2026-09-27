@@ -116,6 +116,7 @@ public final class SourceController {
 		boolean keysDown = options.keyUp.isDown() || options.keyDown.isDown() || options.keyLeft.isDown() || options.keyRight.isDown();
 		Vec2 stick = player.input.getMoveVector();
 		boolean useStick = !keysDown && stick.lengthSquared() > 0;
+		boolean padJump = player.input.keyPresses.jump() && !options.keyJump.isDown();
 
 		MinecraftCollider collider = new MinecraftCollider(player, config.unitsPerBlock, scale);
 		long[] ends = clock.advance(now);
@@ -124,6 +125,9 @@ public final class SourceController {
 			if (useStick) {
 				INPUT.forward = stick.y;
 				INPUT.side = -stick.x;
+			}
+			if (padJump) {
+				INPUT.jump = true;
 			}
 			INPUT.gravityScale = gravityScale(player);
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
