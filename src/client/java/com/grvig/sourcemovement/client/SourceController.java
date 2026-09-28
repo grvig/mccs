@@ -3,6 +3,7 @@ package com.grvig.sourcemovement.client;
 import com.grvig.sourcemovement.client.mixin.EntityAccessor;
 import com.grvig.sourcemovement.client.mixin.LivingEntityAccessor;
 import com.grvig.sourcemovement.client.mixin.LocalPlayerAccessor;
+import com.grvig.sourcemovement.core.HopStats;
 import com.grvig.sourcemovement.core.InputTimeline;
 import com.grvig.sourcemovement.core.MoveConfig;
 import com.grvig.sourcemovement.core.MoveInput;
@@ -40,6 +41,10 @@ public final class SourceController {
 	public static MoveConfig config = new MoveConfig();
 	public static boolean enabled = true;
 	public static final InputTimeline TIMELINE = new InputTimeline();
+	public static final HopStats STATS = new HopStats();
+	/** How much horizontal speed the last tick gained or lost, in units per second. */
+	public static double speedChange;
+	private static double lastSpeed;
 
 	private static final MoveState STATE = new MoveState();
 	private static final MoveInput INPUT = new MoveInput();
@@ -87,6 +92,7 @@ public final class SourceController {
 			TIMELINE.fill(INPUT, now - GAME_TICK_NANOS);
 			STATE.oldJump = INPUT.jump;
 			STATE.surfaceFriction = 1;
+			STATS.reset();
 		}
 		simulatedThisTick = true;
 		tuckFeet(player);
@@ -131,6 +137,7 @@ public final class SourceController {
 			}
 			INPUT.gravityScale = gravityScale(player);
 			SourceMovement.step(STATE, INPUT, config, collider, SubstepClock.SOURCE_TICK);
+			STATS.update(STATE.onGround, STATE.horizontalSpeed(), INPUT.yaw, INPUT.side);
 			if (i < ends.length - 1) {
 				// The server replays each position packet as one straight move. Reporting every Source
 				// tick keeps those moves as short as ours, so corners never look like a wrong move, and
@@ -252,6 +259,12 @@ public final class SourceController {
 	public static void endTick() {
 		if (!simulatedThisTick) {
 			TIMELINE.fill(INPUT, System.nanoTime());
+		}
+		LocalPlayer player = Minecraft.getInstance().player;
+		if (player != null) {
+			double speed = horizontalSpeed(player);
+			speedChange = speed - lastSpeed;
+			lastSpeed = speed;
 		}
 		simulatedLastTick = simulatedThisTick;
 		simulatedThisTick = false;
