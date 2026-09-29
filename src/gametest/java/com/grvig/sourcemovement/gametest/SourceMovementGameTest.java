@@ -47,6 +47,8 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			soulSand(context, server);
 			cobweb(context, server);
 			slabSteps(context, server);
+			ladder(context, server);
+			knockback(context, server);
 		}
 	}
 
@@ -277,4 +279,29 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		context.waitTicks(15);
 	}
 
+	private static void ladder(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 80);
+		server.runCommand("execute at @a run setblock ~ ~ ~-1 stone");
+		server.runCommand("execute at @a run setblock ~ ~ ~ ladder[facing=south]");
+		context.waitTicks(10);
+		boolean simulating = context.computeOnClient(client -> SourceController.shouldSimulate(player(client)));
+		check(!simulating, "ladders hand movement back to vanilla");
+		server.runCommand("execute at @a run setblock ~ ~ ~ air");
+		context.waitTicks(10);
+	}
+
+	private static void knockback(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 90);
+		Vec3 start = position(context);
+		server.runOnServer(s -> {
+			var player = s.getPlayerList().getPlayers().get(0);
+			player.knockback(1.0, 0, -1);
+			player.hurtMarked = true;
+		});
+		context.waitTicks(15);
+		Vec3 end = position(context);
+		double pushed = Math.hypot(end.x - start.x, end.z - start.z);
+		check(pushed > 1.0, "knockback still pushes the player, moved " + pushed + " blocks");
+		waitForGround(context);
+	}
 }
