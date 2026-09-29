@@ -20,6 +20,8 @@ import org.slf4j.LoggerFactory;
 public class SourceMovementGameTest implements FabricClientGameTest {
 	private static final Logger LOGGER = LoggerFactory.getLogger("sourcemovement-gametest");
 	private static final double UNITS = 40;
+	/** Where a player stands on the default superflat world. */
+	private static final int SURFACE_Y = -60;
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -39,6 +41,8 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			serverAgrees(context, server);
 			fallDamage(context, server);
 			waterFallsBackToVanilla(context, server);
+			speedEffect(context, server);
+			jumpBoost(context, server);
 		}
 	}
 
@@ -83,15 +87,21 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		check(stopped < 0.01, "friction stops the player, got " + stopped);
 	}
 
-	private static void jumpHeight(ClientGameTestContext context) {
+	/** Taps jump and returns the highest point reached, in units above the start. */
+	private static double jumpApex(ClientGameTestContext context) {
 		waitForGround(context);
 		double startY = position(context).y;
 		context.getInput().pressKey(options -> options.keyJump);
 		double apex = 0;
-		for (int i = 0; i < 40; i++) {
+		for (int i = 0; i < 50; i++) {
 			context.waitTick();
 			apex = Math.max(apex, (position(context).y - startY) * UNITS);
 		}
+		return apex;
+	}
+
+	private static void jumpHeight(ClientGameTestContext context) {
+		double apex = jumpApex(context);
 		check(Math.abs(apex - 54.65) < 1.0, "jump apex near 54.65 units, got " + apex);
 		check(onGround(context), "lands again after a jump");
 	}
@@ -133,6 +143,9 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		input.releaseKey(options -> options.keyJump);
 		SourceController.config.autohop = false;
 		check(best > 300, "strafing while bunnyhopping builds speed past 300 u/s, got " + best);
+		// Right strafe while turning right the whole time is perfect sync.
+		double sync = SourceController.STATS.sync;
+		check(sync > 0.9, "jump stats see the strafe as in sync, got " + sync);
 		waitForGround(context);
 	}
 
@@ -167,4 +180,44 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		server.runCommand("execute at @a run setblock ~ ~ ~ air");
 		context.waitTicks(10);
 	}
+
+	/**
+	 * Puts the player on clean ground at the given x, facing +Z, so each test gets its own strip.
+	 * The height is absolute because soul sand leaves the player standing a little low.
+	 */
+	private static void moveTo(ClientGameTestContext context, TestServerContext server, int x) {
+		server.runCommand("tp @a " + x + " " + SURFACE_Y + " 0 0 0");
+		context.waitTicks(10);
+		waitForGround(context);
+	}
+
+	/** Holds forward for some ticks and returns the speed at the end. */
+	private static double runForward(ClientGameTestContext context, int ticks) {
+		TestInput input = context.getInput();
+		input.holdKey(options -> options.keyUp);
+		context.waitTicks(ticks);
+		double speed = speed(context);
+		input.releaseKey(options -> options.keyUp);
+		return speed;
+	}
+
+	private static void speedEffect(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 30);
+		server.runCommand("effect give @a speed 30 0 true");
+		context.waitTicks(2);
+		double running = runForward(context, 40);
+		server.runCommand("effect clear @a speed");
+		check(Math.abs(running - 300) < 0.5, "Speed I runs 20% faster at 300 u/s, got " + running);
+		context.waitTicks(15);
+	}
+
+	private static void jumpBoost(ClientGameTestContext context, TestServerContext server) {
+		server.runCommand("effect give @a jump_boost 30 0 true");
+		context.waitTicks(2);
+		double apex = jumpApex(context);
+		server.runCommand("effect clear @a jump_boost");
+		// Vanilla jump power 0.52 instead of 0.42 scales the impulse to 373.9, which peaks at 84.46.
+		check(Math.abs(apex - 84.46) < 1.0, "Jump Boost I raises the apex to about 84.5 units, got " + apex);
+	}
+
 }
