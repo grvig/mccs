@@ -45,6 +45,8 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			jumpBoost(context, server);
 			ice(context, server);
 			soulSand(context, server);
+			cobweb(context, server);
+			slabSteps(context, server);
 		}
 	}
 
@@ -240,6 +242,38 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		context.waitTicks(5);
 		double running = runForward(context, 40);
 		check(running > 20 && running < 125, "soul sand slows running, got " + running);
+		context.waitTicks(15);
+	}
+
+	private static void cobweb(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 60);
+		server.runCommand("execute at @a run fill ~ ~ ~ ~ ~1 ~6 cobweb");
+		context.waitTicks(5);
+		double startZ = position(context).z;
+		runForward(context, 20);
+		double moved = position(context).z - startZ;
+		server.runCommand("execute at @a run fill ~-1 ~ ~-8 ~1 ~1 ~8 air replace cobweb");
+		check(moved > 0.01 && moved < 1.0, "cobwebs hold the player to a crawl, moved " + moved + " blocks in a second");
+		context.waitTicks(10);
+	}
+
+	private static void slabSteps(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 70);
+		server.runCommand("execute at @a run fill ~-1 ~ ~3 ~1 ~ ~6 smooth_stone_slab");
+		context.waitTicks(5);
+		double startY = position(context).y;
+		TestInput input = context.getInput();
+		input.holdKey(options -> options.keyUp);
+		double highest = 0;
+		for (int i = 0; i < 40; i++) {
+			context.waitTick();
+			highest = Math.max(highest, position(context).y - startY);
+		}
+		double speed = speed(context);
+		input.releaseKey(options -> options.keyUp);
+		double end = position(context).y - startY;
+		check(Math.abs(highest - 0.5) < 0.01, "walks up onto a slab without jumping, rose " + highest);
+		check(Math.abs(end) < 0.01 && speed > 240, "walks back down at full speed, ended " + end + " high at " + speed + " u/s");
 		context.waitTicks(15);
 	}
 
