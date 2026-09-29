@@ -50,11 +50,16 @@ public final class ConfigFile {
 		}
 		problems = List.of();
 		MoveConfig config = new MoveConfig();
+		save(config);
+		return config;
+	}
+
+	public static void save(MoveConfig config) {
+		Path path = path();
 		try {
 			Files.writeString(path, GSON.toJson(config));
 		} catch (IOException e) {
 			LOGGER.error("Could not write {}", path, e);
 		}
-		return config;
 	}
 }
