@@ -43,6 +43,8 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			waterFallsBackToVanilla(context, server);
 			speedEffect(context, server);
 			jumpBoost(context, server);
+			ice(context, server);
+			soulSand(context, server);
 		}
 	}
 
@@ -218,6 +220,27 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		server.runCommand("effect clear @a jump_boost");
 		// Vanilla jump power 0.52 instead of 0.42 scales the impulse to 373.9, which peaks at 84.46.
 		check(Math.abs(apex - 84.46) < 1.0, "Jump Boost I raises the apex to about 84.5 units, got " + apex);
+	}
+
+	private static void ice(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 40);
+		server.runCommand("execute at @a run fill ~-3 ~-1 ~-3 ~3 ~-1 ~30 ice");
+		context.waitTicks(5);
+		double running = runForward(context, 60);
+		context.waitTicks(10);
+		double coasting = speed(context);
+		check(running > 50 && running < 240, "ice is slow to get going, " + running + " u/s after 3 seconds");
+		check(coasting > running * 0.8, "ice keeps sliding, " + coasting + " u/s half a second after letting go");
+		context.waitTicks(60);
+	}
+
+	private static void soulSand(ClientGameTestContext context, TestServerContext server) {
+		moveTo(context, server, 50);
+		server.runCommand("execute at @a run fill ~-3 ~-1 ~-3 ~3 ~-1 ~30 soul_sand");
+		context.waitTicks(5);
+		double running = runForward(context, 40);
+		check(running > 20 && running < 125, "soul sand slows running, got " + running);
+		context.waitTicks(15);
 	}
 
 }
