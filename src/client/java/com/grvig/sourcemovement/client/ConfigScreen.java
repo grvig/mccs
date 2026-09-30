@@ -43,6 +43,21 @@ public final class ConfigScreen {
 			.build());
 		number(general, entries, "Crouch jump lift", config.duckJumpLift, defaults.duckJumpLift, value -> config.duckJumpLift = value);
 
+		ConfigCategory physics = builder.getOrCreateCategory(Component.literal("Physics"));
+		number(physics, entries, "sv_accelerate", config.accelerate, defaults.accelerate, value -> config.accelerate = value);
+		number(physics, entries, "sv_airaccelerate", config.airAccelerate, defaults.airAccelerate, value -> config.airAccelerate = value);
+		number(physics, entries, "sv_air_max_wishspeed", config.airMaxWishSpeed, defaults.airMaxWishSpeed, value -> config.airMaxWishSpeed = value);
+		number(physics, entries, "sv_friction", config.friction, defaults.friction, value -> config.friction = value);
+		number(physics, entries, "sv_stopspeed", config.stopSpeed, defaults.stopSpeed, value -> config.stopSpeed = value);
+		number(physics, entries, "Run speed", config.runSpeed, defaults.runSpeed, value -> config.runSpeed = value);
+		number(physics, entries, "sv_maxspeed", config.maxSpeed, defaults.maxSpeed, value -> config.maxSpeed = value);
+		number(physics, entries, "Duck speed multiplier", config.duckSpeedMultiplier, defaults.duckSpeedMultiplier, value -> config.duckSpeedMultiplier = value);
+		number(physics, entries, "sv_gravity", config.gravity, defaults.gravity, value -> config.gravity = value);
+		number(physics, entries, "sv_jump_impulse", config.jumpImpulse, defaults.jumpImpulse, value -> config.jumpImpulse = value);
+		number(physics, entries, "sv_maxvelocity", config.maxVelocity, defaults.maxVelocity, value -> config.maxVelocity = value);
+		number(physics, entries, "Bhop cap factor", config.bhopCapFactor, defaults.bhopCapFactor, value -> config.bhopCapFactor = value);
+		number(physics, entries, "Units per block", config.unitsPerBlock, defaults.unitsPerBlock, value -> config.unitsPerBlock = value);
+
 		builder.setSavingRunnable(() -> {
 			config.validate();
 			ConfigFile.save(config);
