@@ -1,5 +1,6 @@
 package com.grvig.sourcemovement.gametest;
 
+import com.grvig.sourcemovement.client.ModMenuIntegration;
 import com.grvig.sourcemovement.client.SourceController;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.TestInput;
@@ -7,6 +8,7 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.phys.Vec3;
@@ -26,6 +28,7 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 	@Override
 	public void runTest(ClientGameTestContext context) {
 		context.runOnClient(client -> client.options.getSoundSourceOptionInstance(SoundSource.MASTER).set(0.0));
+		settingsScreen(context);
 		try (TestSingleplayerContext world = context.worldBuilder().create()) {
 			world.getClientWorld().waitForChunksRender();
 			TestServerContext server = world.getServer();
@@ -50,6 +53,17 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 			ladder(context, server);
 			knockback(context, server);
 		}
+	}
+
+	private static void settingsScreen(ClientGameTestContext context) {
+		Screen title = context.computeOnClient(client -> client.screen);
+		Screen screen = context.computeOnClient(client -> new ModMenuIntegration().getModConfigScreenFactory().create(title));
+		check(screen != null, "Mod Menu gets a settings screen");
+		context.setScreen(() -> screen);
+		context.waitTicks(5);
+		boolean open = context.computeOnClient(client -> client.screen == screen);
+		check(open, "the settings screen opens");
+		context.setScreen(() -> title);
 	}
 
 	private static LocalPlayer player(Minecraft client) {
