@@ -45,6 +45,11 @@ dependencies {
 	modCompileOnly("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
 		exclude(group: "net.fabricmc.fabric-api")
 	}
+	// Present in the dev and game test clients so the settings screen can be opened there.
+	modLocalRuntime "com.terraformersmc:modmenu:${project.modmenu_version}"
+	modLocalRuntime("me.shedaniel.cloth:cloth-config-fabric:${project.cloth_config_version}") {
+		exclude(group: "net.fabricmc.fabric-api")
+	}
 
 	testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
 	testRuntimeOnly "org.junit.platform:junit-platform-launcher"
