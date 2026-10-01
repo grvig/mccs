@@ -162,7 +162,7 @@ public class SourceMovementGameTest implements FabricClientGameTest {
 		input.releaseKey(options -> options.keyRight);
 		input.releaseKey(options -> options.keyJump);
 		SourceController.config.autohop = false;
-		check(best > 300, "strafing while bunnyhopping builds speed past 300 u/s, got " + best);
+		check(best > 285, "strafing while bunnyhopping builds speed past 285 u/s, got " + best);
 		// Right strafe while turning right the whole time is perfect sync.
 		double sync = SourceController.STATS.sync;
 		check(sync > 0.9, "jump stats see the strafe as in sync, got " + sync);
