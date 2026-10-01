@@ -7,7 +7,11 @@
 	"authors": [
 		"grvig"
 	],
+	"contact": {
+		"sources": "https://github.com/grvig/mccs"
+	},
 	"license": "MIT",
+	"icon": "assets/sourcemovement/icon.png",
 	"environment": "client",
 	"entrypoints": {
 		"client": [
