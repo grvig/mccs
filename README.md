@@ -44,7 +44,17 @@ while you lose it. The line under it describes your last jump:
 - `sync`: of the moments you were turning in the air, how often you held the strafe key for that
   direction. Near 100% means your A/D presses match your mouse.
 
+## Singleplayer only by default
+
+The mod stays off on servers, where Source speeds can get you kicked or pulled back. Set
+`allowMultiplayer` to `true` to use it anyway, at your own risk. LAN worlds you host count as
+singleplayer.
+
 ## Config
+
+Mod Menu has a settings screen for all of these when Cloth Config is installed.
+
+`config/sourcemovement.json` is written on first launch. Speeds are in units per second.
 
 | Key | Default | Meaning |
 | --- | --- | --- |
@@ -53,6 +63,7 @@ while you lose it. The line under it describes your last jump:
 | `bhopCapFactor` | 1.1 | The cap, as a multiple of max speed |
 | `autohop` | false | Holding jump jumps on every landing |
 | `scrollJump` | `both` | `off`, `up`, `down` or `both` |
+| `allowMultiplayer` | false | Run on servers too |
 | `accelerate` | 5.5 | sv_accelerate |
 | `airAccelerate` | 12 | sv_airaccelerate |
 | `airMaxWishSpeed` | 30 | sv_air_max_wishspeed |
@@ -67,7 +78,8 @@ while you lose it. The line under it describes your last jump:
 | `maxVelocity` | 3500 | sv_maxvelocity, per axis |
 | `unitsPerBlock` | 40 | Units in one block |
 
-Run `/sourcemovement reload` after editing.
+Run `/sourcemovement reload` after editing. Values that are missing or out of range go back to
+their defaults, and the reload tells you which ones it fixed.
 
 ## What stays vanilla
 
