@@ -31,9 +31,20 @@ and menus, chat and spectator mode scroll as usual.
 
 Commands: `/sourcemovement toggle` and `/sourcemovement reload`.
 
-## Config
+Controllers work through Controlify: the stick steers (half a tilt runs at half speed, like CS on a
+gamepad) and the jump button jumps.
 
-`config/sourcemovement.json` is written on first launch. Speeds are in units per second.
+## Speedometer
+
+The speedometer shows your horizontal speed under the crosshair, green while you gain speed and red
+while you lose it. The line under it describes your last jump:
+
+- `pre`: your speed when you left the ground
+- the signed number: what the jump gained or lost by the time you landed
+- `sync`: of the moments you were turning in the air, how often you held the strafe key for that
+  direction. Near 100% means your A/D presses match your mouse.
+
+## Config
 
 | Key | Default | Meaning |
 | --- | --- | --- |
